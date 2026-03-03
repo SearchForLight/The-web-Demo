@@ -16,29 +16,46 @@
     </nav>
 
     <div class="container mt-4">
-        <h3 class="mb-4">上传图像进行清晰化处理与工业运维</h3>
+        <h3 class="mb-4">上传图像 / 文本日志 进行工业运维</h3>
         
-        <!-- 上传区 -->
+        <!-- ==================== 1. 图像上传（原功能保留） ==================== -->
         <div class="card mb-4">
+            <div class="card-header bg-primary text-white">📸 图像上传（现场照片）</div>
             <div class="card-body">
                 <input type="file" id="imageInput" class="form-control mb-3" accept="image/*">
-                <button onclick="uploadImage()" class="btn btn-primary w-100">提交给后端处理（清晰化 + 运维）</button>
+                <button onclick="uploadImage()" class="btn btn-primary w-100">提交图像处理（清晰化 + 运维）</button>
             </div>
         </div>
 
-        <!-- 结果展示区 -->
+        <!-- ==================== 2. 新增：文本日志上传（现在优先做这个） ==================== -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">📝 文本日志上传（工业运维记录）</div>
+            <div class="card-body">
+                <input type="file" id="textInput" class="form-control mb-3" accept=".txt,.log">
+                <textarea id="textPaste" class="form-control mb-3" rows="4" placeholder="或者直接粘贴文本日志内容..."></textarea>
+                <button onclick="uploadTextLog()" class="btn btn-success w-100">提交文本日志处理（LLM清洗 + 诊断）</button>
+            </div>
+        </div>
+
+        <!-- ==================== 结果展示区（图像和文本共用区域） ==================== -->
         <div id="resultSection" class="row" style="display:none;">
-            <div class="col-md-6">
+            <!-- 图像结果 -->
+            <div class="col-md-6 mb-4">
                 <h5>AI增强后高清图</h5>
                 <img id="enhancedImg" class="img-fluid border rounded" style="max-height:400px;">
             </div>
-            <div class="col-md-6">
-                <h5>工业运维诊断结果</h5>
+            <!-- 文本结果（新） -->
+            <div class="col-md-6 mb-4">
+                <h5>文本日志处理结果</h5>
+                <div id="textResult" class="alert alert-success" style="white-space: pre-wrap; max-height:400px; overflow-y:auto;"></div>
+            </div>
+            <!-- 通用诊断 -->
+            <div class="col-12">
                 <div id="diagnosis" class="alert alert-info"></div>
             </div>
         </div>
 
-        <!-- 咨询意见区 -->
+        <!-- ==================== 3. 咨询远程专家（原功能保留） ==================== -->
         <div class="card mt-4">
             <div class="card-body">
                 <h5>咨询远程专家意见</h5>
@@ -50,47 +67,79 @@
     </div>
 
     <script>
-        // 登录检查
+        // 登录检查（保持不变）
         const token = localStorage.getItem('token');
         const username = localStorage.getItem('username');
-        if (!token) window.location.href = 'login.html';
+        if (!token) window.location.href = 'index.html';
         document.getElementById('welcome').textContent = `欢迎，${username}`;
 
         function logout() {
             localStorage.clear();
-            window.location.href = 'login.html';
+            window.location.href = 'index.html';
         }
 
-        // 上传图像调用后端API
+        // ==================== 原图像上传函数（不变） ====================
         async function uploadImage() {
             const file = document.getElementById('imageInput').files[0];
             if (!file) return alert('请先选择图像文件');
-
             const formData = new FormData();
-            formData.append('image', file);   // 后端接收字段名
+            formData.append('image', file);
 
             document.getElementById('resultSection').style.display = 'flex';
 
             try {
-                const res = await fetch('http://127.0.0.1:8000/api/process', {  // ← 改成你们后端实际地址
+                const res = await fetch('http://127.0.0.1:8000/api/process', {  // ← 改成你们后端地址
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                const data = await res.json();
+                document.getElementById('enhancedImg').src = `data:image/jpeg;base64,${data.enhanced_base64 || data.enhanced}`;
+                document.getElementById('diagnosis').innerHTML = `<strong>图像诊断：</strong> ${data.diagnosis || data.result}`;
+            } catch (err) {
+                alert('图像API调用失败（后端未连通时为mock）');
+            }
+        }
+
+        // ==================== 新增：文本日志上传函数 ====================
+        async function uploadTextLog() {
+            const file = document.getElementById('textInput').files[0];
+            const pastedText = document.getElementById('textPaste').value.trim();
+
+            if (!file && !pastedText) return alert('请上传文件或粘贴文本日志');
+
+            const formData = new FormData();
+            if (file) formData.append('text_log', file);
+            else formData.append('text_log', pastedText);
+
+            document.getElementById('resultSection').style.display = 'flex';
+
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/process_text', {  // ← 后端新接口地址
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` },
                     body: formData
                 });
                 const data = await res.json();
 
-                document.getElementById('enhancedImg').src = `data:image/jpeg;base64,${data.enhanced_base64 || data.enhanced}`;
-                document.getElementById('diagnosis').innerHTML = `<strong>诊断：</strong> ${data.diagnosis || data.result}`;
+                // 显示文本处理结果
+                document.getElementById('textResult').innerHTML = 
+                    `<strong>文本处理结果：</strong><br>${data.cleaned_text || data.result || data.diagnosis || '处理完成（后端返回内容）'}`;
+                
+                // 同步显示通用诊断
+                document.getElementById('diagnosis').innerHTML = 
+                    `<strong>文本诊断：</strong> ${data.diagnosis || '已完成日志分析'}`;
             } catch (err) {
-                alert('API调用失败（先用mock跑通，后端ready后改URL）');
+                alert('文本API调用失败（后端未连通时为mock）');
+                // mock演示
+                document.getElementById('textResult').innerHTML = `<strong>文本处理结果（mock）：</strong><br>日志已清洗，检测到3处异常：轴承温度超标、振动异常、建议停机检修。`;
             }
         }
 
-        // 咨询意见调用后端API
+        // ==================== 原咨询函数（不变） ====================
         async function consultOpinion() {
             const text = document.getElementById('consultText').value.trim();
             if (!text) return alert('请输入咨询内容');
-
             try {
                 const res = await fetch('http://127.0.0.1:8000/api/consult', {
                     method: 'POST',
