@@ -18,7 +18,7 @@
     <div class="container mt-4">
         <h3 class="mb-4">上传图像 / 文本日志 进行工业运维</h3>
         
-        <!-- ==================== 1. 图像上传（原功能保留） ==================== -->
+        <!-- 1. 图像上传 -->
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">📸 图像上传（现场照片）</div>
             <div class="card-body">
@@ -27,7 +27,7 @@
             </div>
         </div>
 
-        <!-- ==================== 2. 新增：文本日志上传（现在优先做这个） ==================== -->
+        <!-- 2. 文本日志上传 -->
         <div class="card mb-4">
             <div class="card-header bg-success text-white">📝 文本日志上传（工业运维记录）</div>
             <div class="card-body">
@@ -37,26 +37,23 @@
             </div>
         </div>
 
-        <!-- ==================== 结果展示区（图像和文本共用区域） ==================== -->
+        <!-- 结果展示区 -->
         <div id="resultSection" class="row" style="display:none;">
-            <!-- 图像结果 -->
             <div class="col-md-6 mb-4">
                 <h5>AI增强后高清图</h5>
                 <img id="enhancedImg" class="img-fluid border rounded" style="max-height:400px;">
             </div>
-            <!-- 文本结果（新） -->
             <div class="col-md-6 mb-4">
                 <h5>文本日志处理结果</h5>
                 <div id="textResult" class="alert alert-success" style="white-space: pre-wrap; max-height:400px; overflow-y:auto;"></div>
             </div>
-            <!-- 通用诊断 -->
             <div class="col-12">
                 <div id="diagnosis" class="alert alert-info"></div>
             </div>
         </div>
 
-        <!-- ==================== 3. 咨询远程专家（原功能保留） ==================== -->
-        <div class="card mt-4">
+        <!-- 3. 咨询远程专家 -->
+        <div class="card mb-4">
             <div class="card-body">
                 <h5>咨询远程专家意见</h5>
                 <textarea id="consultText" class="form-control" rows="3" placeholder="请输入补充问题或描述..."></textarea>
@@ -64,10 +61,28 @@
                 <div id="consultResult" class="mt-3 alert alert-secondary"></div>
             </div>
         </div>
+
+        <!-- 4. 远程专家专属：所有注册账号管理（仅专家可见） -->
+        <div class="card mb-4" id="adminUsersSection" style="display:none;">
+            <div class="card-header bg-danger text-white">👑 远程专家管理后台 - 所有注册账号</div>
+            <div class="card-body">
+                <button onclick="loadAllUsers()" class="btn btn-danger mb-3">刷新用户列表</button>
+                <div id="userList" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- 5. 远程专家专属：所有上传记录 -->
+        <div class="card mb-4" id="adminUploadsSection" style="display:none;">
+            <div class="card-header bg-warning text-dark">📋 所有上传记录（远程专家可见）</div>
+            <div class="card-body">
+                <button onclick="loadAllUploads()" class="btn btn-warning mb-3">刷新上传记录</button>
+                <div id="uploadList" class="mt-3"></div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // 登录检查（保持不变）
+        // 登录检查
         const token = localStorage.getItem('token');
         const username = localStorage.getItem('username');
         if (!token) window.location.href = 'index.html';
@@ -78,35 +93,36 @@
             window.location.href = 'index.html';
         }
 
-        // ==================== 原图像上传函数（不变） ====================
+        // ==================== 图像上传 ====================
         async function uploadImage() {
             const file = document.getElementById('imageInput').files[0];
             if (!file) return alert('请先选择图像文件');
+
             const formData = new FormData();
             formData.append('image', file);
 
             document.getElementById('resultSection').style.display = 'flex';
 
             try {
-                const res = await fetch('http://127.0.0.1:8000/api/process', {  // ← 改成你们后端地址
+                const res = await fetch('http://127.0.0.1:8000/api/process', {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` },
                     body: formData
                 });
                 const data = await res.json();
-                document.getElementById('enhancedImg').src = `data:image/jpeg;base64,${data.enhanced_base64 || data.enhanced}`;
-                document.getElementById('diagnosis').innerHTML = `<strong>图像诊断：</strong> ${data.diagnosis || data.result}`;
+                document.getElementById('enhancedImg').src = `data:image/jpeg;base64,${data.enhanced_base64 || data.enhanced || ''}`;
+                document.getElementById('diagnosis').innerHTML = `<strong>图像诊断：</strong> ${data.diagnosis || data.result || '处理完成'}`;
             } catch (err) {
-                alert('图像API调用失败（后端未连通时为mock）');
+                alert('图像处理失败（后端未连通）');
             }
         }
 
-        // ==================== 新增：文本日志上传函数 ====================
+        // ==================== 文本日志上传 ====================
         async function uploadTextLog() {
             const file = document.getElementById('textInput').files[0];
             const pastedText = document.getElementById('textPaste').value.trim();
 
-            if (!file && !pastedText) return alert('请上传文件或粘贴文本日志');
+            if (!file && !pastedText) return alert('请上传文件或粘贴文本');
 
             const formData = new FormData();
             if (file) formData.append('text_log', file);
@@ -115,31 +131,24 @@
             document.getElementById('resultSection').style.display = 'flex';
 
             try {
-                const res = await fetch('http://127.0.0.1:8000/api/process_text', {  // ← 后端新接口地址
+                const res = await fetch('http://127.0.0.1:8000/api/process_text', {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` },
                     body: formData
                 });
                 const data = await res.json();
-
-                // 显示文本处理结果
-                document.getElementById('textResult').innerHTML = 
-                    `<strong>文本处理结果：</strong><br>${data.cleaned_text || data.result || data.diagnosis || '处理完成（后端返回内容）'}`;
-                
-                // 同步显示通用诊断
-                document.getElementById('diagnosis').innerHTML = 
-                    `<strong>文本诊断：</strong> ${data.diagnosis || '已完成日志分析'}`;
+                document.getElementById('textResult').innerHTML = `<strong>文本处理结果：</strong><br>${data.cleaned_text || data.result || data.diagnosis || '已处理'}`;
+                document.getElementById('diagnosis').innerHTML = `<strong>文本诊断：</strong> ${data.diagnosis || '日志分析完成'}`;
             } catch (err) {
-                alert('文本API调用失败（后端未连通时为mock）');
-                // mock演示
-                document.getElementById('textResult').innerHTML = `<strong>文本处理结果（mock）：</strong><br>日志已清洗，检测到3处异常：轴承温度超标、振动异常、建议停机检修。`;
+                alert('文本处理失败（后端未连通）');
             }
         }
 
-        // ==================== 原咨询函数（不变） ====================
+        // ==================== 咨询专家 ====================
         async function consultOpinion() {
             const text = document.getElementById('consultText').value.trim();
             if (!text) return alert('请输入咨询内容');
+
             try {
                 const res = await fetch('http://127.0.0.1:8000/api/consult', {
                     method: 'POST',
@@ -152,9 +161,58 @@
                 const data = await res.json();
                 document.getElementById('consultResult').innerText = data.opinion || data.message || '专家已回复';
             } catch (err) {
-                alert('咨询API调用失败');
+                alert('咨询失败');
             }
         }
+
+        // ==================== 加载所有用户（专家管理） ====================
+        async function loadAllUsers() {
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/admin/users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('权限不足或接口未实现');
+                const users = await res.json();
+
+                let html = '<table class="table table-striped"><thead><tr><th>用户名</th><th>注册时间</th><th>操作</th></tr></thead><tbody>';
+                users.forEach(user => {
+                    html += `<tr><td>${user.username}</td><td>${user.created_at || '未知'}</td><td><button class="btn btn-sm btn-danger" onclick="deleteUser('${user.id}')">删除</button></td></tr>`;
+                });
+                html += '</tbody></table>';
+                document.getElementById('userList').innerHTML = html;
+            } catch (err) {
+                document.getElementById('userList').innerHTML = '<div class="alert alert-warning">加载用户列表失败（后端未实现或无权限）</div>';
+            }
+        }
+
+        // ==================== 加载所有上传记录（专家查看） ====================
+        async function loadAllUploads() {
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/admin/uploads', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('权限不足或接口未实现');
+                const uploads = await res.json();
+
+                let html = '<table class="table table-striped"><thead><tr><th>上传者</th><th>时间</th><th>类型</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+                uploads.forEach(upload => {
+                    html += `<tr><td>${upload.username}</td><td>${upload.timestamp || '未知'}</td><td>${upload.type}</td><td>${upload.status}</td><td><a href="#" onclick="viewUpload('${upload.id}')">查看</a></td></tr>`;
+                });
+                html += '</tbody></table>';
+                document.getElementById('uploadList').innerHTML = html;
+            } catch (err) {
+                document.getElementById('uploadList').innerHTML = '<div class="alert alert-warning">加载上传记录失败（后端未实现或无权限）</div>';
+            }
+        }
+
+        // 占位函数（后端实现后可扩展）
+        function deleteUser(id) { alert(`删除用户 ID: ${id} （后端接口待实现）`); }
+        function viewUpload(id) { alert(`查看上传 ID: ${id} （后端接口待实现）`); }
+
+        // 页面加载时尝试显示专家专属模块（可根据后端返回的 role 判断）
+        // 这里先默认显示，实际可从登录返回的 role 判断
+        document.getElementById('adminUsersSection').style.display = 'block';
+        document.getElementById('adminUploadsSection').style.display = 'block';
     </script>
 </body>
 </html>
