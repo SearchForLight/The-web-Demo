@@ -87,6 +87,25 @@ async function apiLogout() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+// 注销当前账号（删除用户及其所有记录）
+async function apiDeleteCurrentAccount() {
+  const current = await apiGetCurrentUser();
+  if (!current) throw new Error('未登录');
+
+  // 删除用户
+  let users = loadJson(USERS_KEY, []);
+  users = users.filter(u => u.id !== current.id);
+  saveJson(USERS_KEY, users);
+
+  // 删除该用户的所有记录
+  let records = loadJson(RECORDS_KEY, []);
+  records = records.filter(r => r.userId !== current.id);
+  saveJson(RECORDS_KEY, records);
+
+  // 清除登录状态
+  await apiLogout();
+}
+
 // ============ 业务记录相关（图片 / 日志 / 提问）============
 
 /**

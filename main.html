@@ -15,6 +15,7 @@
             <div class="ms-auto d-flex align-items-center">
                 <span id="welcome" class="text-white me-3"></span>
                 <button class="btn btn-outline-light btn-sm" id="logoutBtn">退出登录</button>
+                <button class="btn btn-outline-danger btn-sm ms-2" id="deleteAccountBtn">注销账号</button>
             </div>
         </div>
     </nav>
@@ -318,6 +319,18 @@
                 } catch (err) {
                     alert(err.message || '删除用户失败');
                 }
+            }
+        });
+
+        // 注销账号
+        document.getElementById('deleteAccountBtn').addEventListener('click', async function () {
+            if (!confirm('确定要注销账号吗？此操作不可恢复，所有数据将被删除。')) return;
+            try {
+                await apiDeleteCurrentAccount();
+                alert('账号已注销，所有数据已删除。');
+                window.location.href = 'index.html';
+            } catch (err) {
+                alert(err.message || '注销失败');
             }
         });
     </script>
