@@ -14,53 +14,312 @@
             <span class="navbar-brand">工业智能运维平台</span>
             <div class="ms-auto d-flex align-items-center">
                 <span id="welcome" class="text-white me-3"></span>
-                <button class="btn btn-outline-light btn-sm" onclick="logout()">退出登录</button>
+                <button class="btn btn-outline-light btn-sm" id="logoutBtn">退出登录</button>
             </div>
         </div>
     </nav>
 
     <div class="container mt-4">
-        <h3 class="mb-4 text-center">欢迎使用工业运维平台</h3>
+        <h3 class="mb-4 text-center">欢迎使用远程工业运维指导平台</h3>
 
-        <!-- 普通用户功能 -->
+        <!-- 普通用户功能区域 -->
         <div id="userSection" style="display:none;">
-            <!-- 图片、文本、提问卡片（同上一版） -->
-            <!-- ... 为节省篇幅，这里省略，你可以直接把上一版 userSection 的内容粘进来 ... -->
+            <!-- 上传图片 -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <strong>上传设备图片并请求运维分析</strong>
+                </div>
+                <div class="card-body">
+                    <form id="imageForm">
+                        <div class="mb-3">
+                            <label class="form-label">选择设备图片</label>
+                            <input type="file" id="imageFile" accept="image/*" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">补充说明（可选）</label>
+                            <textarea id="imageDesc" class="form-control" rows="2"
+                                      placeholder="例如：电机出现异常噪音，拍摄位置为电机侧面"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">上传并请求分析</button>
+                    </form>
+                    <div class="mt-3">
+                        <h6>分析结果（示例占位）：</h6>
+                        <p id="imageResult" class="text-muted">尚未上传图片。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 上传文本日志 -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <strong>上传运维日志文本并分析</strong>
+                </div>
+                <div class="card-body">
+                    <form id="logForm">
+                        <div class="mb-3">
+                            <label class="form-label">运维日志内容</label>
+                            <textarea id="logText" class="form-control" rows="4"
+                                      placeholder="粘贴或输入设备运行日志、告警信息等"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">上传并分析</button>
+                    </form>
+                    <div class="mt-3">
+                        <h6>分析结果（示例占位）：</h6>
+                        <p id="logResult" class="text-muted">尚未上传日志。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 提问 -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <strong>向远程专家 / AI 提问</strong>
+                </div>
+                <div class="card-body">
+                    <form id="questionForm">
+                        <div class="mb-3">
+                            <label class="form-label">问题描述</label>
+                            <textarea id="questionText" class="form-control" rows="3"
+                                      placeholder="例如：电机运行时出现周期性抖动，可能原因是什么？应如何排查？"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success">提交问题</button>
+                    </form>
+                    <div class="mt-3">
+                        <h6>专家 / AI 回答（示例占位）：</h6>
+                        <p id="questionAnswer" class="text-muted">尚未提交问题。</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- 专家/管理员：所有上传处理记录 -->
+        <!-- 专家 / 管理员：查看所有记录 -->
         <div id="recordsSection" class="card mb-4" style="display:none;">
-            <!-- 同上一版 -->
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>用户上传记录与处理情况</strong>
+                <button class="btn btn-sm btn-outline-secondary" id="refreshRecordsBtn">刷新</button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>编号</th>
+                                <th>用户名</th>
+                                <th>类型</th>
+                                <th>内容摘要</th>
+                                <th>当前结果 / 建议</th>
+                                <th>时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recordsTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">暂无记录。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted small mb-0">
+                    说明：当前为前端本地模拟数据。后端接入后，专家可在此基础上查看、标注和更新分析结果。
+                </p>
+            </div>
         </div>
 
-        <!-- 仅管理员：账号管理 -->
+        <!-- 管理员：账号管理 -->
         <div id="adminSection" class="card mb-4" style="display:none;">
-            <!-- 同上一版 -->
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>账号管理（仅管理员）</strong>
+                <button class="btn btn-sm btn-outline-secondary" id="refreshUsersBtn">刷新</button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>用户名</th>
+                                <th>角色</th>
+                                <th>注册时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">暂无用户。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted small mb-0">
+                    说明：真实部署时，这里会调用后端提供的管理员接口（列出用户、修改角色、禁用账号等）。
+                </p>
+            </div>
         </div>
     </div>
 
+    <script src="api.js"></script>
     <script>
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        const role = currentUser.role || 'user';
-        const username = currentUser.username;
+        // 初始化当前用户和角色对应的界面
+        (async function initPage() {
+            const currentUser = await apiGetCurrentUser();
+            if (!currentUser || !currentUser.username) {
+                window.location.href = 'index.html';
+                return;
+            }
 
-        if (!username) {
+            const { username, role } = currentUser;
+            document.getElementById('welcome').textContent = `欢迎，${username}（${role}）`;
+
+            if (role === 'user') {
+                document.getElementById('userSection').style.display = 'block';
+            } else if (role === 'expert' || role === 'admin') {
+                document.getElementById('recordsSection').style.display = 'block';
+                loadRecords();
+            }
+            if (role === 'admin') {
+                document.getElementById('adminSection').style.display = 'block';
+                loadUsers();
+            }
+        })();
+
+        // 退出登录
+        document.getElementById('logoutBtn').addEventListener('click', async function () {
+            await apiLogout();
             window.location.href = 'index.html';
+        });
+
+        // ========== 普通用户：上传图片 ==========
+        document.getElementById('imageForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('imageFile');
+            const file = fileInput.files[0];
+            const desc = document.getElementById('imageDesc').value;
+
+            if (!file) {
+                alert('请先选择一张图片');
+                return;
+            }
+
+            try {
+                const record = await apiUploadImage(file, desc);
+                document.getElementById('imageResult').textContent = record.result;
+                alert('图片已上传（当前为本地模拟，后端接入后将发送至服务器处理）');
+            } catch (err) {
+                alert(err.message || '上传失败');
+            }
+        });
+
+        // ========== 普通用户：上传日志 ==========
+        document.getElementById('logForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const text = document.getElementById('logText').value;
+
+            try {
+                const record = await apiUploadLog(text);
+                document.getElementById('logResult').textContent = record.result;
+                alert('日志已上传（当前为本地模拟，后端接入后将发送至服务器处理）');
+            } catch (err) {
+                alert(err.message || '上传失败');
+            }
+        });
+
+        // ========== 普通用户：提问 ==========
+        document.getElementById('questionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const q = document.getElementById('questionText').value;
+
+            try {
+                const { answer } = await apiAskQuestion(q);
+                document.getElementById('questionAnswer').textContent = answer;
+                alert('问题已提交（当前回答为示例文案，后端接入后将由专家/AI 返回真实答案）');
+            } catch (err) {
+                alert(err.message || '提交失败');
+            }
+        });
+
+        // ========== 专家 / 管理员：查看记录 ==========
+        async function loadRecords() {
+            try {
+                const records = await apiGetRecords();
+                const tbody = document.getElementById('recordsTableBody');
+                if (!records.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">暂无记录。</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = records.map((r, idx) => `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${r.username}</td>
+                        <td>${r.type === 'image' ? '图片' : r.type === 'log' ? '日志' : '提问'}</td>
+                        <td>${r.contentSummary}</td>
+                        <td>${r.result}</td>
+                        <td>${r.createdAt}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                alert(err.message || '加载记录失败');
+            }
         }
 
-        document.getElementById('welcome').textContent = `欢迎，${username} (${role})`;
+        document.getElementById('refreshRecordsBtn').addEventListener('click', loadRecords);
 
-        // 角色显示逻辑（同上一版）
-        if (role === 'user') document.getElementById('userSection').style.display = 'block';
-        else if (role === 'expert' || role === 'admin') document.getElementById('recordsSection').style.display = 'block';
-        if (role === 'admin') document.getElementById('adminSection').style.display = 'block';
-
-        function logout() {
-            localStorage.removeItem('currentUser');   // 只清除当前登录状态
-            window.location.href = 'index.html';
+        // ========== 管理员：账号管理 ==========
+        async function loadUsers() {
+            try {
+                const users = await apiAdminListUsers();
+                const tbody = document.getElementById('usersTableBody');
+                if (!users.length) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">暂无用户。</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = users.map(u => `
+                    <tr data-id="${u.id}">
+                        <td>${u.username}</td>
+                        <td>
+                            <select class="form-select form-select-sm user-role-select">
+                                <option value="user" ${u.role === 'user' ? 'selected' : ''}>普通用户</option>
+                                <option value="expert" ${u.role === 'expert' ? 'selected' : ''}>远程专家</option>
+                                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>管理员</option>
+                            </select>
+                        </td>
+                        <td>${u.createdAt ? new Date(u.createdAt).toLocaleString() : '-'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary me-2 btn-save-role">保存</button>
+                            <button class="btn btn-sm btn-outline-danger btn-delete-user">删除</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                alert(err.message || '加载用户失败');
+            }
         }
 
-        // 你的其他函数（uploadImage、uploadTextLog 等）保持不变
+        document.getElementById('refreshUsersBtn').addEventListener('click', loadUsers);
+
+        // 事件代理：保存角色 / 删除用户
+        document.getElementById('usersTableBody').addEventListener('click', async function(e) {
+            const tr = e.target.closest('tr[data-id]');
+            if (!tr) return;
+            const userId = tr.getAttribute('data-id');
+
+            if (e.target.classList.contains('btn-save-role')) {
+                const select = tr.querySelector('.user-role-select');
+                const newRole = select.value;
+                try {
+                    await apiAdminUpdateUser(userId, { role: newRole });
+                    alert('角色已更新（当前为本地模拟，后端接入后将同步数据库）');
+                } catch (err) {
+                    alert(err.message || '更新角色失败');
+                }
+            } else if (e.target.classList.contains('btn-delete-user')) {
+                if (!confirm('确定要删除该用户吗？')) return;
+                try {
+                    await apiAdminDeleteUser(userId);
+                    tr.remove();
+                    alert('用户已删除（当前为本地模拟，后端接入后将同步数据库）');
+                } catch (err) {
+                    alert(err.message || '删除用户失败');
+                }
+            }
+        });
     </script>
 </body>
 </html>

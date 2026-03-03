@@ -35,45 +35,72 @@
         </div>
     </div>
 
+    <!-- 先引入 api.js，再写本页逻辑 -->
+    <script src="api.js"></script>
     <script>
         // 显示已注册账号列表（支持一键切换）
         function renderAccountList() {
-            let users = JSON.parse(localStorage.getItem('users') || '[]');
-            let html = '<p class="mb-2 text-muted">已注册账号（点击切换）</p><div class="list-group">';
+            const users = (function() {
+                try {
+                    return JSON.parse(localStorage.getItem('users')) || [];
+                } catch (e) {
+                    return [];
+                }
+            })();
+
+            if (!users.length) {
+                document.getElementById('accountList').innerHTML =
+                    '<p class="text-muted">暂无账号，请先注册。</p>';
+                return;
+            }
+
+            let html = '<p class="mb-2 text-muted">已注册账号（点击快速登录）</p><div class="list-group">';
             users.forEach(user => {
-                html += `<button class="list-group-item list-group-item-action" onclick="quickLogin('${user.username}')">${user.username} (${user.role})</button>`;
+                html += `<button type="button" class="list-group-item list-group-item-action"
+                            onclick="quickLogin('${user.username}')">
+                            ${user.username} (${user.role})
+                         </button>`;
             });
             html += '</div>';
-            document.getElementById('accountList').innerHTML = html || '<p class="text-muted">暂无账号，请先注册</p>';
+            document.getElementById('accountList').innerHTML = html;
         }
 
-        function quickLogin(username) {
-            let users = JSON.parse(localStorage.getItem('users') || '[]');
+        async function quickLogin(username) {
+            // 通过本地 users 找到密码，然后调用 apiLogin（真实项目建议直接让后端提供一键切换接口）
+            const users = (function() {
+                try {
+                    return JSON.parse(localStorage.getItem('users')) || [];
+                } catch (e) {
+                    return [];
+                }
+            })();
+
             const user = users.find(u => u.username === username);
-            if (user) {
-                localStorage.setItem('currentUser', JSON.stringify({ username: user.username, role: user.role }));
-                localStorage.setItem('token', 'fake-' + Date.now());
+            if (!user) {
+                alert('未找到该用户，请重新登录');
+                return;
+            }
+            try {
+                await apiLogin(user.username, user.password);
                 alert(`已切换到 ${username}`);
                 window.location.href = 'main.html';
+            } catch (err) {
+                alert(err.message || '快速登录失败');
             }
         }
 
         // 普通登录
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const username = document.getElementById('username').value;
+            const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
 
-            let users = JSON.parse(localStorage.getItem('users') || '[]');
-            const user = users.find(u => u.username === username && u.password === password);
-
-            if (user) {
-                localStorage.setItem('currentUser', JSON.stringify({ username, role: user.role }));
-                localStorage.setItem('token', 'fake-' + Date.now());
+            try {
+                await apiLogin(username, password);
                 alert('登录成功！');
                 window.location.href = 'main.html';
-            } else {
-                alert('用户名或密码错误');
+            } catch (err) {
+                alert(err.message || '登录失败');
             }
         });
 
