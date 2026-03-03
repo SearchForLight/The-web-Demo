@@ -13,6 +13,10 @@
                 <div class="card shadow">
                     <div class="card-body">
                         <h2 class="text-center mb-4">登录平台</h2>
+
+                        <!-- 已注册账号列表（一键切换） -->
+                        <div id="accountList" class="mb-4"></div>
+
                         <form id="loginForm">
                             <div class="mb-3">
                                 <label class="form-label">用户名</label>
@@ -32,6 +36,29 @@
     </div>
 
     <script>
+        // 显示已注册账号列表（支持一键切换）
+        function renderAccountList() {
+            let users = JSON.parse(localStorage.getItem('users') || '[]');
+            let html = '<p class="mb-2 text-muted">已注册账号（点击切换）</p><div class="list-group">';
+            users.forEach(user => {
+                html += `<button class="list-group-item list-group-item-action" onclick="quickLogin('${user.username}')">${user.username} (${user.role})</button>`;
+            });
+            html += '</div>';
+            document.getElementById('accountList').innerHTML = html || '<p class="text-muted">暂无账号，请先注册</p>';
+        }
+
+        function quickLogin(username) {
+            let users = JSON.parse(localStorage.getItem('users') || '[]');
+            const user = users.find(u => u.username === username);
+            if (user) {
+                localStorage.setItem('currentUser', JSON.stringify({ username: user.username, role: user.role }));
+                localStorage.setItem('token', 'fake-' + Date.now());
+                alert(`已切换到 ${username}`);
+                window.location.href = 'main.html';
+            }
+        }
+
+        // 普通登录
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const username = document.getElementById('username').value;
@@ -41,15 +68,17 @@
             const user = users.find(u => u.username === username && u.password === password);
 
             if (user) {
+                localStorage.setItem('currentUser', JSON.stringify({ username, role: user.role }));
                 localStorage.setItem('token', 'fake-' + Date.now());
-                localStorage.setItem('username', username);
-                localStorage.setItem('role', user.role);
                 alert('登录成功！');
                 window.location.href = 'main.html';
             } else {
                 alert('用户名或密码错误');
             }
         });
+
+        // 页面加载时显示账号列表
+        renderAccountList();
     </script>
 </body>
 </html>

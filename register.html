@@ -22,21 +22,13 @@
                                 <label class="form-label">密码</label>
                                 <input type="password" id="regPassword" class="form-control" required>
                             </div>
+                            <!-- 角色选择保持不变 -->
                             <div class="mb-3">
                                 <label class="form-label">请选择角色</label>
                                 <div class="d-flex gap-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="role" id="roleUser" value="user" checked>
-                                        <label class="form-check-label" for="roleUser">普通用户</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="role" id="roleExpert" value="expert">
-                                        <label class="form-check-label" for="roleExpert">远程专家</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="role" id="roleAdmin" value="admin">
-                                        <label class="form-check-label" for="roleAdmin">管理员</label>
-                                    </div>
+                                    <div class="form-check"><input class="form-check-input" type="radio" name="role" value="user" checked><label class="form-check-label">普通用户</label></div>
+                                    <div class="form-check"><input class="form-check-input" type="radio" name="role" value="expert"><label class="form-check-label">远程专家</label></div>
+                                    <div class="form-check"><input class="form-check-input" type="radio" name="role" value="admin"><label class="form-check-label">管理员</label></div>
                                 </div>
                             </div>
                             <div class="mb-3" id="adminPasswordDiv" style="display:none;">
@@ -65,10 +57,9 @@
             const adminPass = document.getElementById('adminPassword').value;
 
             if (role === 'admin' && adminPass !== '1227') {
-                return alert('管理员注册密码错误！必须输入 1227');
+                return alert('管理员密码错误！必须输入 1227');
             }
 
-            // 当前用 localStorage 模拟（后端上线后这里会改成 fetch 调用后端）
             const username = document.getElementById('regUsername').value;
             const password = document.getElementById('regPassword').value;
 
@@ -76,9 +67,9 @@
             users.push({ username, password, role });
             localStorage.setItem('users', JSON.stringify(users));
 
+            // 设置为当前登录账号
+            localStorage.setItem('currentUser', JSON.stringify({ username, role }));
             localStorage.setItem('token', 'fake-' + Date.now());
-            localStorage.setItem('username', username);
-            localStorage.setItem('role', role);
 
             alert('注册成功！');
             window.location.href = 'main.html';
