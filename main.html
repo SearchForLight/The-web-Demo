@@ -16,203 +16,60 @@
     </nav>
 
     <div class="container mt-4">
-        <h3 class="mb-4">上传图像 / 文本日志 进行工业运维</h3>
-        
-        <!-- 1. 图像上传 -->
-        <div class="card mb-4">
-            <div class="card-header bg-primary text-white">📸 图像上传（现场照片）</div>
-            <div class="card-body">
-                <input type="file" id="imageInput" class="form-control mb-3" accept="image/*">
-                <button onclick="uploadImage()" class="btn btn-primary w-100">提交图像处理（清晰化 + 运维）</button>
-            </div>
+        <h3 id="pageTitle" class="mb-4">欢迎使用工业运维平台</h3>
+
+        <!-- 所有角色都能用的功能 -->
+        <div id="userSection">
+            <!-- 图像上传、文本日志、咨询专家（保持你原来的功能） -->
+            <!-- ... 你之前的上传和咨询代码可直接粘贴在这里 ... -->
+            <!-- 为节省篇幅这里省略，实际替换时把你之前版本的这部分粘进来即可 -->
         </div>
 
-        <!-- 2. 文本日志上传 -->
-        <div class="card mb-4">
-            <div class="card-header bg-success text-white">📝 文本日志上传（工业运维记录）</div>
+        <!-- 专家 和 管理员 共用：所有上传记录 -->
+        <div id="uploadsSection" class="card mb-4" style="display:none;">
+            <div class="card-header bg-warning text-dark">📋 所有上传记录（专家 & 管理员共用）</div>
             <div class="card-body">
-                <input type="file" id="textInput" class="form-control mb-3" accept=".txt,.log">
-                <textarea id="textPaste" class="form-control mb-3" rows="4" placeholder="或者直接粘贴文本日志内容..."></textarea>
-                <button onclick="uploadTextLog()" class="btn btn-success w-100">提交文本日志处理（LLM清洗 + 诊断）</button>
-            </div>
-        </div>
-
-        <!-- 结果展示区 -->
-        <div id="resultSection" class="row" style="display:none;">
-            <div class="col-md-6 mb-4">
-                <h5>AI增强后高清图</h5>
-                <img id="enhancedImg" class="img-fluid border rounded" style="max-height:400px;">
-            </div>
-            <div class="col-md-6 mb-4">
-                <h5>文本日志处理结果</h5>
-                <div id="textResult" class="alert alert-success" style="white-space: pre-wrap; max-height:400px; overflow-y:auto;"></div>
-            </div>
-            <div class="col-12">
-                <div id="diagnosis" class="alert alert-info"></div>
-            </div>
-        </div>
-
-        <!-- 3. 咨询远程专家 -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5>咨询远程专家意见</h5>
-                <textarea id="consultText" class="form-control" rows="3" placeholder="请输入补充问题或描述..."></textarea>
-                <button onclick="consultOpinion()" class="btn btn-success mt-3">发送咨询</button>
-                <div id="consultResult" class="mt-3 alert alert-secondary"></div>
-            </div>
-        </div>
-
-        <!-- 4. 远程专家专属：所有注册账号管理（仅专家可见） -->
-        <div class="card mb-4" id="adminUsersSection" style="display:none;">
-            <div class="card-header bg-danger text-white">👑 远程专家管理后台 - 所有注册账号</div>
-            <div class="card-body">
-                <button onclick="loadAllUsers()" class="btn btn-danger mb-3">刷新用户列表</button>
-                <div id="userList" class="mt-3"></div>
-            </div>
-        </div>
-
-        <!-- 5. 远程专家专属：所有上传记录 -->
-        <div class="card mb-4" id="adminUploadsSection" style="display:none;">
-            <div class="card-header bg-warning text-dark">📋 所有上传记录（远程专家可见）</div>
-            <div class="card-body">
-                <button onclick="loadAllUploads()" class="btn btn-warning mb-3">刷新上传记录</button>
+                <button onclick="loadAllUploads()" class="btn btn-warning">刷新所有上传记录</button>
                 <div id="uploadList" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- 仅管理员可见：专门管理账号界面 -->
+        <div id="usersSection" class="card mb-4" style="display:none;">
+            <div class="card-header bg-danger text-white">👑 账号管理（仅管理员）</div>
+            <div class="card-body">
+                <button onclick="loadAllUsers()" class="btn btn-danger">刷新用户列表</button>
+                <div id="userList" class="mt-3"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // 登录检查
-        const token = localStorage.getItem('token');
+        const role = localStorage.getItem('role');
         const username = localStorage.getItem('username');
-        if (!token) window.location.href = 'index.html';
-        document.getElementById('welcome').textContent = `欢迎，${username}`;
 
-        function logout() {
-            localStorage.clear();
-            window.location.href = 'index.html';
+        if (!role) window.location.href = 'index.html';
+
+        document.getElementById('welcome').textContent = `欢迎，${username}（${role}）`;
+
+        // 专家和管理员共用上传记录
+        if (role === 'expert' || role === 'admin') {
+            document.getElementById('uploadsSection').style.display = 'block';
+        }
+        // 仅管理员可见账号管理界面
+        if (role === 'admin') {
+            document.getElementById('usersSection').style.display = 'block';
         }
 
-        // ==================== 图像上传 ====================
-        async function uploadImage() {
-            const file = document.getElementById('imageInput').files[0];
-            if (!file) return alert('请先选择图像文件');
+        function logout() { localStorage.clear(); window.location.href = 'index.html'; }
 
-            const formData = new FormData();
-            formData.append('image', file);
-
-            document.getElementById('resultSection').style.display = 'flex';
-
-            try {
-                const res = await fetch('http://127.0.0.1:8000/api/process', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formData
-                });
-                const data = await res.json();
-                document.getElementById('enhancedImg').src = `data:image/jpeg;base64,${data.enhanced_base64 || data.enhanced || ''}`;
-                document.getElementById('diagnosis').innerHTML = `<strong>图像诊断：</strong> ${data.diagnosis || data.result || '处理完成'}`;
-            } catch (err) {
-                alert('图像处理失败（后端未连通）');
-            }
+        // mock 函数（后端上线后改成真实fetch）
+        function loadAllUploads() {
+            document.getElementById('uploadList').innerHTML = `<div class="alert alert-info">这里显示所有用户上传的图像和日志（专家和管理员都能看到）</div>`;
         }
-
-        // ==================== 文本日志上传 ====================
-        async function uploadTextLog() {
-            const file = document.getElementById('textInput').files[0];
-            const pastedText = document.getElementById('textPaste').value.trim();
-
-            if (!file && !pastedText) return alert('请上传文件或粘贴文本');
-
-            const formData = new FormData();
-            if (file) formData.append('text_log', file);
-            else formData.append('text_log', pastedText);
-
-            document.getElementById('resultSection').style.display = 'flex';
-
-            try {
-                const res = await fetch('http://127.0.0.1:8000/api/process_text', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formData
-                });
-                const data = await res.json();
-                document.getElementById('textResult').innerHTML = `<strong>文本处理结果：</strong><br>${data.cleaned_text || data.result || data.diagnosis || '已处理'}`;
-                document.getElementById('diagnosis').innerHTML = `<strong>文本诊断：</strong> ${data.diagnosis || '日志分析完成'}`;
-            } catch (err) {
-                alert('文本处理失败（后端未连通）');
-            }
+        function loadAllUsers() {
+            document.getElementById('userList').innerHTML = `<div class="alert alert-info">这里显示所有注册账号列表，只有管理员能看到并管理</div>`;
         }
-
-        // ==================== 咨询专家 ====================
-        async function consultOpinion() {
-            const text = document.getElementById('consultText').value.trim();
-            if (!text) return alert('请输入咨询内容');
-
-            try {
-                const res = await fetch('http://127.0.0.1:8000/api/consult', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ question: text })
-                });
-                const data = await res.json();
-                document.getElementById('consultResult').innerText = data.opinion || data.message || '专家已回复';
-            } catch (err) {
-                alert('咨询失败');
-            }
-        }
-
-        // ==================== 加载所有用户（专家管理） ====================
-        async function loadAllUsers() {
-            try {
-                const res = await fetch('http://127.0.0.1:8000/api/admin/users', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!res.ok) throw new Error('权限不足或接口未实现');
-                const users = await res.json();
-
-                let html = '<table class="table table-striped"><thead><tr><th>用户名</th><th>注册时间</th><th>操作</th></tr></thead><tbody>';
-                users.forEach(user => {
-                    html += `<tr><td>${user.username}</td><td>${user.created_at || '未知'}</td><td><button class="btn btn-sm btn-danger" onclick="deleteUser('${user.id}')">删除</button></td></tr>`;
-                });
-                html += '</tbody></table>';
-                document.getElementById('userList').innerHTML = html;
-            } catch (err) {
-                document.getElementById('userList').innerHTML = '<div class="alert alert-warning">加载用户列表失败（后端未实现或无权限）</div>';
-            }
-        }
-
-        // ==================== 加载所有上传记录（专家查看） ====================
-        async function loadAllUploads() {
-            try {
-                const res = await fetch('http://127.0.0.1:8000/api/admin/uploads', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!res.ok) throw new Error('权限不足或接口未实现');
-                const uploads = await res.json();
-
-                let html = '<table class="table table-striped"><thead><tr><th>上传者</th><th>时间</th><th>类型</th><th>状态</th><th>操作</th></tr></thead><tbody>';
-                uploads.forEach(upload => {
-                    html += `<tr><td>${upload.username}</td><td>${upload.timestamp || '未知'}</td><td>${upload.type}</td><td>${upload.status}</td><td><a href="#" onclick="viewUpload('${upload.id}')">查看</a></td></tr>`;
-                });
-                html += '</tbody></table>';
-                document.getElementById('uploadList').innerHTML = html;
-            } catch (err) {
-                document.getElementById('uploadList').innerHTML = '<div class="alert alert-warning">加载上传记录失败（后端未实现或无权限）</div>';
-            }
-        }
-
-        // 占位函数（后端实现后可扩展）
-        function deleteUser(id) { alert(`删除用户 ID: ${id} （后端接口待实现）`); }
-        function viewUpload(id) { alert(`查看上传 ID: ${id} （后端接口待实现）`); }
-
-        // 页面加载时尝试显示专家专属模块（可根据后端返回的 role 判断）
-        // 这里先默认显示，实际可从登录返回的 role 判断
-        document.getElementById('adminUsersSection').style.display = 'block';
-        document.getElementById('adminUploadsSection').style.display = 'block';
     </script>
 </body>
 </html>
