@@ -6,17 +6,13 @@
     <title>远程工业运维平台</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <style>
-        .card-header { font-weight: bold; }
-        .alert-info { white-space: pre-wrap; }
-    </style>
 </head>
 <body class="bg-light">
 
     <!-- 导航栏 -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-dark bg-primary">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">工业智能运维平台</a>
+            <span class="navbar-brand">工业智能运维平台</span>
             <div class="ms-auto d-flex align-items-center">
                 <span id="welcome" class="text-white me-3"></span>
                 <button class="btn btn-outline-light btn-sm" onclick="logout()">退出登录</button>
@@ -26,160 +22,159 @@
 
     <div class="container mt-4">
 
-        <!-- 标题 -->
-        <h3 class="mb-4 text-center" id="pageTitle">欢迎使用工业运维平台</h3>
+        <h3 class="mb-4 text-center">欢迎使用工业运维平台</h3>
 
-        <!-- 仅普通用户可见：上传功能区 -->
-        <div id="userUploadSection" style="display:none;">
-            <!-- 图像上传 -->
-            <div class="card mb-4 shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    📸 图像上传（现场照片）
-                </div>
+        <!-- 普通用户专用：上传图片 + 上传文本日志 + 提问 -->
+        <div id="userSection" style="display:none;">
+            <!-- 上传图片 -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">上传图片</div>
                 <div class="card-body">
                     <input type="file" id="imageInput" class="form-control mb-3" accept="image/*">
-                    <button onclick="uploadImage()" class="btn btn-primary w-100">提交图像处理（清晰化 + 运维）</button>
+                    <button onclick="uploadImage()" class="btn btn-primary w-100">提交</button>
                 </div>
             </div>
 
-            <!-- 文本日志上传 -->
-            <div class="card mb-4 shadow-sm">
-                <div class="card-header bg-success text-white">
-                    📝 文本日志上传（工业运维记录）
-                </div>
+            <!-- 上传文本日志 -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">上传文本日志</div>
                 <div class="card-body">
                     <input type="file" id="textInput" class="form-control mb-3" accept=".txt,.log">
-                    <textarea id="textPaste" class="form-control mb-3" rows="4" placeholder="或者直接粘贴文本日志内容..."></textarea>
-                    <button onclick="uploadTextLog()" class="btn btn-success w-100">提交文本日志处理（LLM清洗 + 诊断）</button>
+                    <textarea id="textPaste" class="form-control mb-3" rows="4" placeholder="或直接粘贴日志内容"></textarea>
+                    <button onclick="uploadTextLog()" class="btn btn-success w-100">提交</button>
+                </div>
+            </div>
+
+            <!-- 提问（咨询专家） -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5>提问 / 咨询专家</h5>
+                    <textarea id="consultText" class="form-control mb-3" rows="3" placeholder="请输入您的问题或描述..."></textarea>
+                    <button onclick="consultOpinion()" class="btn btn-info">发送</button>
+                    <div id="consultResult" class="mt-3 alert alert-secondary"></div>
+                </div>
+            </div>
+
+            <!-- 结果展示区（普通用户提交后显示） -->
+            <div id="resultSection" class="row mb-4" style="display:none;">
+                <div class="col-md-6">
+                    <h5>处理后图像</h5>
+                    <img id="enhancedImg" class="img-fluid border rounded" style="max-height:400px;">
+                </div>
+                <div class="col-md-6">
+                    <h5>文本日志处理结果</h5>
+                    <div id="textResult" class="alert alert-success" style="white-space: pre-wrap; max-height:400px; overflow-y:auto;"></div>
+                </div>
+                <div class="col-12 mt-3">
+                    <div id="diagnosis" class="alert alert-info"></div>
                 </div>
             </div>
         </div>
 
-        <!-- 所有角色可见：咨询专家 -->
-        <div class="card mb-4 shadow-sm">
+        <!-- 专家 & 管理员可见：上传处理记录 -->
+        <div id="recordsSection" class="card mb-4" style="display:none;">
+            <div class="card-header bg-warning text-dark">所有上传处理记录</div>
             <div class="card-body">
-                <h5>咨询远程专家意见</h5>
-                <textarea id="consultText" class="form-control mb-3" rows="3" placeholder="请输入补充问题或描述..."></textarea>
-                <button onclick="consultOpinion()" class="btn btn-info">发送咨询</button>
-                <div id="consultResult" class="mt-3 alert alert-secondary"></div>
-            </div>
-        </div>
-
-        <!-- 结果展示区（图像 + 文本共用，普通用户提交后显示） -->
-        <div id="resultSection" class="row mb-4" style="display:none;">
-            <div class="col-md-6">
-                <h5 class="text-center">AI增强后高清图</h5>
-                <img id="enhancedImg" class="img-fluid border rounded shadow-sm" style="max-height:400px; width:100%; object-fit:contain;">
-            </div>
-            <div class="col-md-6">
-                <h5 class="text-center">文本日志处理结果</h5>
-                <div id="textResult" class="alert alert-success" style="white-space: pre-wrap; max-height:400px; overflow-y:auto;"></div>
-            </div>
-            <div class="col-12 mt-3">
-                <div id="diagnosis" class="alert alert-info"></div>
-            </div>
-        </div>
-
-        <!-- 专家 & 管理员可见：所有上传记录 -->
-        <div id="uploadsSection" class="card mb-4 shadow-sm" style="display:none;">
-            <div class="card-header bg-warning text-dark">
-                📋 所有上传记录（专家 & 管理员可见）
-            </div>
-            <div class="card-body">
-                <button onclick="loadAllUploads()" class="btn btn-warning mb-3">刷新所有上传记录</button>
-                <div id="uploadList" class="mt-3 border rounded p-3 bg-light"></div>
+                <button onclick="loadRecords()" class="btn btn-warning mb-3">刷新记录</button>
+                <div id="recordsList" class="mt-3 border rounded p-3 bg-light"></div>
             </div>
         </div>
 
         <!-- 仅管理员可见：账号管理 -->
-        <div id="usersSection" class="card mb-4 shadow-sm" style="display:none;">
-            <div class="card-header bg-danger text-white">
-                👑 账号管理（仅管理员）
-            </div>
+        <div id="adminSection" class="card mb-4" style="display:none;">
+            <div class="card-header bg-danger text-white">账号管理</div>
             <div class="card-body">
-                <button onclick="loadAllUsers()" class="btn btn-danger mb-3">刷新用户列表</button>
-                <div id="userList" class="mt-3 border rounded p-3 bg-light"></div>
+                <button onclick="loadUsers()" class="btn btn-danger mb-3">刷新用户列表</button>
+                <div id="usersList" class="mt-3 border rounded p-3 bg-light"></div>
             </div>
         </div>
 
     </div>
 
     <script>
-        // ================================================
-        // 登录状态与角色判断
-        // ================================================
-        const token = localStorage.getItem('token');
-        const username = localStorage.getItem('username');
+        // 读取角色
         const role = localStorage.getItem('role') || 'user';
+        const username = localStorage.getItem('username');
 
-        if (!token || !username) {
+        if (!username) {
             window.location.href = 'index.html';
         }
 
         document.getElementById('welcome').textContent = `欢迎，${username} (${role})`;
 
-        // 普通用户显示上传功能
+        // 根据角色显示对应内容
         if (role === 'user') {
-            document.getElementById('userUploadSection').style.display = 'block';
+            document.getElementById('userSection').style.display = 'block';
+        } else if (role === 'expert' || role === 'admin') {
+            document.getElementById('recordsSection').style.display = 'block';
         }
 
-        // 专家和管理员显示所有上传记录
-        if (role === 'expert' || role === 'admin') {
-            document.getElementById('uploadsSection').style.display = 'block';
-        }
-
-        // 仅管理员显示账号管理
         if (role === 'admin') {
-            document.getElementById('usersSection').style.display = 'block';
+            document.getElementById('adminSection').style.display = 'block';
         }
 
-        // ================================================
-        // 退出登录
-        // ================================================
         function logout() {
             localStorage.clear();
             window.location.href = 'index.html';
         }
 
         // ================================================
-        // 功能 mock（后期替换成 fetch）
+        // mock 功能（后期替换为 fetch）
         // ================================================
 
-        async function uploadImage() {
-            const file = document.getElementById('imageInput').files[0];
-            if (!file) return alert('请先选择一张图片');
+        function uploadImage() {
+            if (!document.getElementById('imageInput').files[0]) {
+                return alert('请选择图片');
+            }
+            alert('图片已提交（mock）');
             document.getElementById('resultSection').style.display = 'flex';
-            alert('图像已提交（mock）');
-            document.getElementById('enhancedImg').src = 'https://via.placeholder.com/600x400?text=增强后图像（mock）';
-            document.getElementById('diagnosis').innerHTML = '<strong>诊断结果（mock）：</strong> 轴承表面有轻微裂纹，建议检修。';
+            document.getElementById('enhancedImg').src = 'https://via.placeholder.com/600x400?text=处理后图像';
+            document.getElementById('diagnosis').innerHTML = '诊断结果（mock）：存在异常，建议检查。';
         }
 
-        async function uploadTextLog() {
+        function uploadTextLog() {
             const file = document.getElementById('textInput').files[0];
             const text = document.getElementById('textPaste').value.trim();
-            if (!file && !text) return alert('请上传文件或粘贴文本');
-            document.getElementById('resultSection').style.display = 'flex';
+            if (!file && !text) return alert('请上传文件或输入文本');
             alert('文本日志已提交（mock）');
-            document.getElementById('textResult').innerHTML = '<strong>处理结果（mock）：</strong><br>日志清洗完成，发现3处异常。';
-            document.getElementById('diagnosis').innerHTML = '<strong>诊断结果（mock）：</strong> 建议立即检查设备。';
+            document.getElementById('resultSection').style.display = 'flex';
+            document.getElementById('textResult').innerHTML = '处理结果（mock）：已清洗，发现 2 处异常。';
+            document.getElementById('diagnosis').innerHTML = '诊断结果（mock）：建议进一步核查。';
         }
 
         function consultOpinion() {
-            const text = document.getElementById('consultText').value.trim();
-            if (!text) return alert('请输入咨询内容');
-            document.getElementById('consultResult').innerText = '专家回复（mock）：感谢咨询，已记录问题，将尽快回复。';
+            const q = document.getElementById('consultText').value.trim();
+            if (!q) return alert('请输入问题');
+            document.getElementById('consultResult').innerText = '专家回复（mock）：感谢提问，已记录，将尽快处理。';
         }
 
-        function loadAllUploads() {
-            document.getElementById('uploadList').innerHTML = `
-                <p class="text-muted">（mock 数据，后端接口：GET /api/admin/uploads）</p>
-                <ul class="list-group">
-                    <li class="list-group-item">用户A - 2025-03-03 14:20 - 图像 - 已处理</li>
-                    <li class="list-group-item">用户B - 2025-03-02 09:15 - 文本日志 - 待处理</li>
-                    <li class="list-group-item">用户C - 2025-03-01 18:45 - 图像 - 已处理</li>
-                </ul>
+        function loadRecords() {
+            document.getElementById('recordsList').innerHTML = `
+                <p class="text-muted">（mock 数据）</p>
+                <div class="list-group">
+                    <div class="list-group-item">用户A - 2025-03-03 14:30 - 图片 - 已完成</div>
+                    <div class="list-group-item">用户B - 2025-03-03 10:15 - 文本日志 - 处理中</div>
+                    <div class="list-group-item">用户C - 2025-03-02 22:45 - 图片 - 已完成</div>
+                </div>
             `;
         }
 
-        function loadAllUsers() {
-            document.getElementBy
+        function loadUsers() {
+            document.getElementById('usersList').innerHTML = `
+                <p class="text-muted">（mock 数据）</p>
+                <div class="list-group">
+                    <div class="list-group-item d-flex justify-content-between">
+                        zzy122703 (user) <button class="btn btn-sm btn-outline-danger">删除</button>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        expert01 (expert) <button class="btn btn-sm btn-outline-danger">删除</button>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        admin01 (admin) <span class="badge bg-success">管理员</span>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
